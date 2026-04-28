@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ローン計算シート</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3348;
+    --accent: #4f8ef7;
+    --accent2: #38d9a9;
+    --text: #e8ecf4;
+    --muted: #6b7280;
+    --danger: #f87171;
+    --gold: #fbbf24;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    padding: 2rem 1rem;
+    background-image:
+      radial-gradient(ellipse at 20% 10%, rgba(79,142,247,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(56,217,169,0.06) 0%, transparent 50%);
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  header p {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-top: 0.4rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .card:nth-child(2) { animation-delay: 0.05s; }
+  .card:nth-child(3) { animation-delay: 0.1s; }
+
+  .card-title {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .card-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .input-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.2rem;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  label {
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .input-wrap {
+    position: relative;
+  }
+
+  input[type="number"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 1rem;
+    padding: 0.7rem 2.6rem 0.7rem 1rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -moz-appearance: textfield;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  input[type="number"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,142,247,0.15);
+  }
+
+  .unit {
+    position: absolute;
+    right: 0.9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.75rem;
+    color: var(--muted);
+    pointer-events: none;
+  }
+
+  .slider-wrap {
+    margin-top: 0.4rem;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px rgba(79,142,247,0.5);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+  /* ── Results ── */
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  @media (max-width: 500px) {
+    .results-grid { grid-template-columns: 1fr; }
+  }
+
+  .result-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.2rem 1.4rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+
+  .result-box.primary { border-color: rgba(79,142,247,0.4); }
+  .result-box.secondary { border-color: rgba(56,217,169,0.3); }
+
+  .result-box::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.04;
+    pointer-events: none;
+  }
+  .result-box.primary::before { background: var(--accent); }
+  .result-box.secondary::before { background: var(--accent2); }
+
+  .result-label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-weight: 500;
+    margin-bottom: 0.4rem;
+  }
+
+  .result-method {
+    font-size: 0.65rem;
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+  }
+
+  .result-method.secondary { color: var(--accent2); }
+
+  .result-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.8rem;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  .result-value span {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-left: 0.3rem;
+    font-weight: 400;
+  }
+
+  /* ── Summary ── */
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.88rem;
+  }
+
+  .summary-row:last-child { border-bottom: none; }
+  .summary-row .key { color: var(--muted); }
+  .summary-row .val { font-family: 'DM Mono', monospace; font-weight: 500; }
+  .summary-row .val.highlight { color: var(--gold); }
+  .summary-row .val.neg { color: var(--danger); }
+
+  /* ── Amortization Table ── */
+  .table-scroll {
+    overflow-x: auto;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    font-family: 'DM Mono', monospace;
+  }
+
+  th {
+    background: var(--surface2);
+    padding: 0.7rem 1rem;
+    text-align: right;
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  th:first-child { text-align: center; }
+
+  td {
+    padding: 0.6rem 1rem;
+    text-align: right;
+    border-top: 1px solid var(--border);
+  }
+
+  td:first-child { text-align: center; color: var(--muted); }
+
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .principal-col { color: var(--accent2); }
+  .interest-col  { color: var(--danger); }
+  .balance-col   { color: var(--text); }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .tab {
+    padding: 0.45rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif;
+    transition: all 0.2s;
+  }
+
+  .tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Bar chart */
+  .chart-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+  }
+
+  .bar-row {
+    display: grid;
+    grid-template-columns: 2rem 1fr;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .bar-no {
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    text-align: right;
+  }
+
+  .bar-track {
+    height: 18px;
+    border-radius: 4px;
+    background: var(--surface2);
+    overflow: hidden;
+    display: flex;
+  }
+
+  .bar-principal { background: var(--accent2); height: 100%; transition: width 0.4s ease; }
+  .bar-interest  { background: var(--danger);  height: 100%; transition: width 0.4s ease; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .formula-note {
+    background: var(--surface2);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 0.7rem 1rem;
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    margin-top: 1rem;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>📊 ローン計算シート</h1>
+    <p>元利均等返済 / 元金均等返済の比較計算</p>
+  </header>
+
+  <!-- Inputs -->
+  <div class="card">
+    <div class="card-title">借入条件</div>
+    <div class="input-grid">
+
+      <div class="input-group">
+        <label>借入金額（元金）</label>
+        <div class="input-wrap">
+          <input type="number" id="principal" value="1000000" min="0" step="10000" autocomplete="off">
+          <span class="unit">円</span>
+        </div>
+        <div class="slider-wrap">
+          <input type="range" id="principal-slider" min="100000" max="100000000" step="100000" value="1000000">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>年利</label>
+        <div class="input-wrap">
+          <input type="number" id="rate" value="2" min="0" max="30" step="0.1" autocomplete="off">
+          <span class="unit">%</span>
+        </div>
+        <div class="slider-wrap">
+          <input type="range" id="rate-slider" min="0.1" max="20" step="0.1" value="2">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>返済回数</label>
+        <div class="input-wrap">
+          <input type="number" id="months" value="12" min="1" max="480" autocomplete="off">
+          <span class="unit">回</span>
+        </div>
+        <div class="slider-wrap">
+          <input type="range" id="months-slider" min="1" max="480" step="1" value="12">
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="card">
+    <div class="card-title">計算結果</div>
+
+    <div class="results-grid">
+      <div class="result-box primary">
+        <div class="result-method">元利均等返済</div>
+        <div class="result-label">毎月の返済額（一定）</div>
+        <div class="result-value" id="res-fixed">—<span>円</span></div>
+      </div>
+      <div class="result-box secondary">
+        <div class="result-method secondary">元金均等返済</div>
+        <div class="result-label">初回の返済額（最大）</div>
+        <div class="result-value" id="res-equal">—<span>円</span></div>
+      </div>
+    </div>
+
+    <div class="summary-row"><span class="key">総返済額（元利均等）</span><span class="val highlight" id="total-fixed">—</span></div>
+    <div class="summary-row"><span class="key">総返済額（元金均等）</span><span class="val highlight" id="total-equal">—</span></div>
+    <div class="summary-row"><span class="key">利子総額（元利均等）</span><span class="val neg" id="interest-fixed">—</span></div>
+    <div class="summary-row"><span class="key">利子総額（元金均等）</span><span class="val neg" id="interest-equal">—</span></div>
+    <div class="summary-row"><span class="key">元金均等の節約額</span><span class="val" id="saving">—</span></div>
+
+    <div class="formula-note">
+      元利均等: PMT(月利, 回数, -元金) = 元金 × 月利 × (1+月利)^n / ((1+月利)^n - 1)<br>
+      元金均等: 元金/回数 + 残高 × 月利
+    </div>
+  </div>
+
+  <!-- Amortization -->
+  <div class="card">
+    <div class="card-title">返済スケジュール</div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('table')">明細表</button>
+      <button class="tab" onclick="switchTab('chart')">グラフ</button>
+    </div>
+
+    <div id="tab-table" class="tab-content active">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>回</th>
+              <th>元利均等　返済額</th>
+              <th>　　元金</th>
+              <th>　　利子</th>
+              <th>元金均等　返済額</th>
+              <th>　　元金</th>
+              <th>　　利子</th>
+              <th>残高（元利均等）</th>
+            </tr>
+          </thead>
+          <tbody id="amort-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-chart" class="tab-content">
+      <div class="chart-wrap" id="chart-wrap"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const fmt = n => Math.round(n).toLocaleString('ja-JP');
+
+function calc() {
+  const P = parseFloat(document.getElementById('principal').value) || 0;
+  const annualRate = parseFloat(document.getElementById('rate').value) || 0;
+  const n = parseInt(document.getElementById('months').value) || 1;
+  const r = annualRate / 100 / 12;
+
+  // 元利均等 (PMT)
+  let pmt;
+  if (r === 0) {
+    pmt = P / n;
+  } else {
+    pmt = P * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+  }
+
+  // 初回 元金均等
+  const equalFirst = (P / n) + P * r;
+
+  document.getElementById('res-fixed').innerHTML = `${fmt(pmt)}<span>円</span>`;
+  document.getElementById('res-equal').innerHTML = `${fmt(equalFirst)}<span>円</span>`;
+
+  // Build schedules
+  let balFixed = P;
+  let balEqual = P;
+  let totalFixed = 0, totalEqual = 0;
+  let intFixed = 0, intEqual = 0;
+
+  const rows = [];
+  for (let i = 1; i <= n; i++) {
+    const intF = balFixed * r;
+    const prinF = pmt - intF;
+    balFixed -= prinF;
+
+    const prinE = P / n;
+    const intE = balEqual * r;
+    balEqual -= prinE;
+
+    totalFixed += pmt;
+    totalEqual += prinE + intE;
+    intFixed  += intF;
+    intEqual  += intE;
+
+    rows.push({ i, pmt, prinF, intF, balF: Math.max(0, balFixed), prinE, intE, pmtE: prinE + intE });
+  }
+
+  document.getElementById('total-fixed').textContent  = fmt(totalFixed) + ' 円';
+  document.getElementById('total-equal').textContent  = fmt(totalEqual) + ' 円';
+  document.getElementById('interest-fixed').textContent = fmt(intFixed) + ' 円';
+  document.getElementById('interest-equal').textContent = fmt(intEqual) + ' 円';
+  const saving = totalFixed - totalEqual;
+  const savEl = document.getElementById('saving');
+  savEl.textContent = (saving >= 0 ? '+' : '') + fmt(saving) + ' 円';
+  savEl.className = 'val ' + (saving >= 0 ? 'highlight' : 'neg');
+
+  // Table
+  const tbody = document.getElementById('amort-body');
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.i}</td>
+      <td>${fmt(r.pmt)}</td>
+      <td class="principal-col">${fmt(r.prinF)}</td>
+      <td class="interest-col">${fmt(r.intF)}</td>
+      <td>${fmt(r.pmtE)}</td>
+      <td class="principal-col">${fmt(r.prinE)}</td>
+      <td class="interest-col">${fmt(r.intE)}</td>
+      <td class="balance-col">${fmt(r.balF)}</td>
+    </tr>
+  `).join('');
+
+  // Chart
+  const maxPmt = Math.max(...rows.map(r => r.pmt));
+  const chartWrap = document.getElementById('chart-wrap');
+  chartWrap.innerHTML = rows.map(row => {
+    const pW = (row.prinF / maxPmt * 100).toFixed(1);
+    const iW = (row.intF  / maxPmt * 100).toFixed(1);
+    return `
+      <div class="bar-row">
+        <div class="bar-no">${row.i}</div>
+        <div class="bar-track" title="元金: ${fmt(row.prinF)}円 / 利子: ${fmt(row.intF)}円">
+          <div class="bar-principal" style="width:${pW}%"></div>
+          <div class="bar-interest"  style="width:${iW}%"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// Sync sliders ↔ inputs
+function syncSlider(inputId, sliderId) {
+  const input = document.getElementById(inputId);
+  const slider = document.getElementById(sliderId);
+  input.addEventListener('input', () => { slider.value = input.value; calc(); });
+  slider.addEventListener('input', () => { input.value = slider.value; calc(); });
+}
+
+// ブラウザのオートフィル対策：初期値を強制セット
+document.getElementById('principal').value = '1000000';
+document.getElementById('rate').value = '2';
+document.getElementById('months').value = '12';
+document.getElementById('principal-slider').value = '1000000';
+document.getElementById('rate-slider').value = '2';
+document.getElementById('months-slider').value = '12';
+
+syncSlider('principal', 'principal-slider');
+syncSlider('rate', 'rate-slider');
+syncSlider('months', 'months-slider');
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['table','chart'][i] === name));
+  document.getElementById('tab-table').classList.toggle('active', name === 'table');
+  document.getElementById('tab-chart').classList.toggle('active', name === 'chart');
+}
+
+calc();
+</script>
+</body>
+</html>
